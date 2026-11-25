@@ -1,0 +1,4 @@
+mail.properties
+*.pdf
+*.class
+.DS_Store
