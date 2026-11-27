@@ -202,7 +202,6 @@ public class TicketPdf {
             return bos.toByteArray();
         } finally {
             d.end();
-            d.close();
         }
     }
 }

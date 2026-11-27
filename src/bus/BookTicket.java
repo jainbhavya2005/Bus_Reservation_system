@@ -75,7 +75,7 @@ public class BookTicket {
             }
 
             try(PreparedStatement ps = con.prepareStatement(
-                    "SELECT bus_name,source,destination,total_seats,departure_time,journey_hours,price FROM bus WHERE bus_id=?")){
+                    "SELECT bus_name,source,destination,total_seats,departure_time,journey_hours,price,run_days FROM bus WHERE bus_id=?")){
                 ps.setInt(1,id);
                 try(ResultSet rs = ps.executeQuery()){
                     if(!rs.next()){
@@ -95,6 +95,13 @@ public class BookTicket {
                     departureTime = rs.getTime("departure_time");
                     hours = rs.getInt("journey_hours");
                     price = rs.getDouble("price");
+
+                    String runDays = rs.getString("run_days");
+                    if(!util.RunDays.runsOn(runDays, journeyDate.toLocalDate())){
+                        JOptionPane.showMessageDialog(null,
+                                "This bus does not run on " + journeyDateStr + ".\nIt runs: " + util.RunDays.label(runDays));
+                        return;
+                    }
                 }
             }
 

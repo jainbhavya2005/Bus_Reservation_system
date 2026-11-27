@@ -5,13 +5,14 @@ import java.awt.*;
 import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.*;
+import util.RunDays;
 
 public class UpdateBus {
 
     private final JFrame f;
     private final DefaultTableModel model;
     private final JTable table;
-    private final JTextField[] fields = new JTextField[7];
+    private final JTextField[] fields = new JTextField[9];
     private int selectedBusId = -1;
 
     public UpdateBus(){
@@ -32,18 +33,18 @@ public class UpdateBus {
         f.setContentPane(bg);
 
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setPreferredSize(new Dimension(1100,600));
+        panel.setPreferredSize(new Dimension(1150,620));
         panel.setBackground(new Color(255,255,255,220));
 
         Font h = new Font("Times New Roman",Font.BOLD,26);
-        Font text = new Font("Times New Roman",Font.PLAIN,16);
+        Font text = new Font("Times New Roman",Font.PLAIN,15);
         Font b = new Font("Times New Roman",Font.BOLD,16);
 
         JLabel title = new JLabel("Update Bus - select a bus, edit, then save",SwingConstants.CENTER);
         title.setFont(h);
         title.setBorder(BorderFactory.createEmptyBorder(15,0,10,0));
 
-        String cols[] = {"Bus ID","Bus Name","Source","Destination","Departure","Hours","Total Seats","Price"};
+        String cols[] = {"Bus ID","Bus Name","Type","Source","Destination","Departure","Hours","Total Seats","Price","Runs On"};
         model = new DefaultTableModel(cols,0){
             public boolean isCellEditable(int r,int c){ return false; }
         };
@@ -52,22 +53,23 @@ public class UpdateBus {
         table.setFont(text);
         table.setRowHeight(26);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.getColumnModel().getColumn(0).setPreferredWidth(60);
+        table.getColumnModel().getColumn(0).setPreferredWidth(55);
         table.getColumnModel().getColumn(1).setPreferredWidth(170);
+        table.getColumnModel().getColumn(2).setPreferredWidth(100);
 
         // ===== EDIT FORM =====
-        String labels[] = {"Bus Name","Source","Destination","Departure (HH:MM)","Hours","Total Seats","Price (₹)"};
+        String labels[] = {"Bus Name","Type","Source","Destination","Departure (HH:MM)","Hours","Total Seats","Price (₹)","Runs On"};
 
-        JPanel form = new JPanel(new GridLayout(2,7,8,4));
+        JPanel form = new JPanel(new GridLayout(2,9,6,4));
         form.setOpaque(false);
-        form.setBorder(BorderFactory.createEmptyBorder(10,20,5,20));
+        form.setBorder(BorderFactory.createEmptyBorder(10,15,5,15));
 
         for(String l : labels){
-            JLabel lab = new JLabel(l);
-            lab.setFont(text);
+            JLabel lab = new JLabel(l, SwingConstants.CENTER);
+            lab.setFont(new Font("Times New Roman", Font.BOLD, 13));
             form.add(lab);
         }
-        for(int i=0;i<7;i++){
+        for(int i=0;i<9;i++){
             fields[i] = new JTextField();
             fields[i].setFont(text);
             form.add(fields[i]);
@@ -103,7 +105,7 @@ public class UpdateBus {
             if(row < 0) return;
 
             selectedBusId = Integer.parseInt(model.getValueAt(row,0).toString());
-            for(int i=0;i<7;i++){
+            for(int i=0;i<9;i++){
                 fields[i].setText(String.valueOf(model.getValueAt(row,i+1)));
             }
         });
@@ -126,12 +128,14 @@ public class UpdateBus {
                 model.addRow(new Object[]{
                         rs.getInt("bus_id"),
                         rs.getString("bus_name"),
+                        rs.getString("bus_type") != null ? rs.getString("bus_type") : "Ordinary",
                         rs.getString("source"),
                         rs.getString("destination"),
                         dep != null ? dep.toLocalTime().toString() : "",   // HH:MM
                         rs.getInt("journey_hours"),
                         rs.getInt("total_seats"),
-                        rs.getDouble("price")
+                        rs.getDouble("price"),
+                        rs.getString("run_days") != null ? rs.getString("run_days") : "DAILY"
                 });
             }
 
@@ -149,14 +153,17 @@ public class UpdateBus {
         }
 
         String name = fields[0].getText().trim();
-        String source = fields[1].getText().trim();
-        String dest = fields[2].getText().trim();
-        String time = fields[3].getText().trim();
+        String type = fields[1].getText().trim();
+        String source = fields[2].getText().trim();
+        String dest = fields[3].getText().trim();
+        String time = fields[4].getText().trim();
 
         if(name.isEmpty() || source.isEmpty() || dest.isEmpty()){
             JOptionPane.showMessageDialog(f,"Bus name, source and destination are required");
             return;
         }
+
+        if(type.isEmpty()) type = "Ordinary";
 
         if(source.equalsIgnoreCase(dest)){
             JOptionPane.showMessageDialog(f,"Source and destination cannot be the same");
@@ -177,9 +184,9 @@ public class UpdateBus {
         double price;
 
         try{
-            hours = Integer.parseInt(fields[4].getText().trim());
-            seats = Integer.parseInt(fields[5].getText().trim());
-            price = Double.parseDouble(fields[6].getText().trim());
+            hours = Integer.parseInt(fields[5].getText().trim());
+            seats = Integer.parseInt(fields[6].getText().trim());
+            price = Double.parseDouble(fields[7].getText().trim());
         }catch(NumberFormatException ex){
             JOptionPane.showMessageDialog(f,"Hours, seats and price must be numbers");
             return;
@@ -189,6 +196,8 @@ public class UpdateBus {
             JOptionPane.showMessageDialog(f,"Hours, seats and price must be greater than 0");
             return;
         }
+
+        String runDays = RunDays.normalize(fields[8].getText().trim());
 
         try(Connection con = DBConnection.getConnection()){
 
@@ -207,17 +216,19 @@ public class UpdateBus {
             }
 
             try(PreparedStatement ps = con.prepareStatement(
-                    "UPDATE bus SET bus_name=?,source=?,destination=?,departure_time=?," +
-                    "journey_hours=?,total_seats=?,price=? WHERE bus_id=?")){
+                    "UPDATE bus SET bus_name=?,bus_type=?,source=?,destination=?,departure_time=?," +
+                    "journey_hours=?,total_seats=?,price=?,run_days=? WHERE bus_id=?")){
 
                 ps.setString(1,name);
-                ps.setString(2,source);
-                ps.setString(3,dest);
-                ps.setTime(4,dep);
-                ps.setInt(5,hours);
-                ps.setInt(6,seats);
-                ps.setDouble(7,price);
-                ps.setInt(8,selectedBusId);
+                ps.setString(2,type);
+                ps.setString(3,source);
+                ps.setString(4,dest);
+                ps.setTime(5,dep);
+                ps.setInt(6,hours);
+                ps.setInt(7,seats);
+                ps.setDouble(8,price);
+                ps.setString(9,runDays);
+                ps.setInt(10,selectedBusId);
 
                 if(ps.executeUpdate() == 0){
                     JOptionPane.showMessageDialog(f,"Bus no longer exists");

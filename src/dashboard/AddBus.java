@@ -4,6 +4,7 @@ import db.DBConnection;
 import java.awt.*;
 import java.sql.*;
 import javax.swing.*;
+import util.RunDays;
 
 public class AddBus {
 
@@ -25,7 +26,7 @@ public class AddBus {
         f.setContentPane(bg);
 
         JPanel panel = new JPanel(null);
-        panel.setPreferredSize(new Dimension(500,600));
+        panel.setPreferredSize(new Dimension(540,700));
         panel.setBackground(new Color(255,255,255,220));
 
         Font h = new Font("Times New Roman",Font.BOLD,24);
@@ -33,43 +34,59 @@ public class AddBus {
         Font fnt = new Font("Times New Roman",Font.PLAIN,16);
         Font b = new Font("Times New Roman",Font.BOLD,16);
 
-        JLabel title = new JLabel("Add New Bus");
+        JLabel title = new JLabel("Add New Bus", SwingConstants.CENTER);
         title.setFont(h);
-        title.setBounds(160,20,250,30);
+        title.setBounds(140,20,260,30);
 
         String labels[]={
                 "Bus Name",
+                "Bus Type",
                 "Source",
                 "Destination",
                 "Departure (HH:MM)",
                 "Journey Hours",
                 "Total Seats",
-                "Price (₹)"
+                "Price (₹)",
+                "Runs On (e.g. DAILY)"
         };
 
-        JTextField fields[]=new JTextField[7];
+        JTextField nameField = new JTextField();
+        JComboBox<String> typeBox = new JComboBox<>(new String[]{
+                "Ordinary", "Express", "Deluxe", "Volvo AC",
+                "AC Seater", "AC Sleeper", "Semi-Sleeper", "Super Luxury"
+        });
+        JTextField srcField = new JTextField();
+        JTextField destField = new JTextField();
+        JTextField timeField = new JTextField();
+        JTextField hoursField = new JTextField();
+        JTextField seatsField = new JTextField();
+        JTextField priceField = new JTextField();
+        JTextField runDaysField = new JTextField("DAILY");
 
-        int y=80;
+        JComponent components[] = {
+                nameField, typeBox, srcField, destField,
+                timeField, hoursField, seatsField, priceField, runDaysField
+        };
 
-        for(int i=0;i<labels.length;i++){
-            JLabel lab=new JLabel(labels[i]);
+        int y = 68;
+        for(int i = 0; i < labels.length; i++){
+            JLabel lab = new JLabel(labels[i]);
             lab.setFont(l);
-            lab.setBounds(50,y,220,30);
+            lab.setBounds(40, y, 220, 30);
 
-            fields[i]=new JTextField();
-            fields[i].setFont(fnt);
-            fields[i].setBounds(280,y,180,30);
+            components[i].setFont(fnt);
+            components[i].setBounds(270, y, 220, 30);
 
             panel.add(lab);
-            panel.add(fields[i]);
-            y+=60;
+            panel.add(components[i]);
+            y += 56;
         }
 
-        JButton add=new JButton("Add Bus");
+        JButton add = new JButton("Add Bus");
         add.setFont(b);
         add.setBackground(new Color(30,144,255));
         add.setForeground(Color.WHITE);
-        add.setBounds(180,y+20,150,40);
+        add.setBounds(190, y + 14, 160, 40);
 
         panel.add(title);
         panel.add(add);
@@ -77,10 +94,12 @@ public class AddBus {
 
         add.addActionListener(e->{
 
-            String name = fields[0].getText().trim();
-            String source = fields[1].getText().trim();
-            String dest = fields[2].getText().trim();
-            String time = fields[3].getText().trim();
+            String name = nameField.getText().trim();
+            String type = (String) typeBox.getSelectedItem();
+            String source = srcField.getText().trim();
+            String dest = destField.getText().trim();
+            String time = timeField.getText().trim();
+            String runDays = RunDays.normalize(runDaysField.getText().trim());
 
             if(name.isEmpty() || source.isEmpty() || dest.isEmpty()){
                 JOptionPane.showMessageDialog(f,"Bus name, source and destination are required");
@@ -107,9 +126,9 @@ public class AddBus {
             }
 
             try{
-                hours = Integer.parseInt(fields[4].getText().trim());
-                seats = Integer.parseInt(fields[5].getText().trim());
-                price = Double.parseDouble(fields[6].getText().trim());
+                hours = Integer.parseInt(hoursField.getText().trim());
+                seats = Integer.parseInt(seatsField.getText().trim());
+                price = Double.parseDouble(priceField.getText().trim());
             }catch(NumberFormatException ex){
                 JOptionPane.showMessageDialog(f,"Journey hours, seats and price must be numbers");
                 return;
@@ -122,7 +141,8 @@ public class AddBus {
 
             try(Connection con=DBConnection.getConnection();
                 PreparedStatement ps=con.prepareStatement(
-                    "INSERT INTO bus(bus_name,source,destination,departure_time,journey_hours,total_seats,booked_seats,price) VALUES(?,?,?,?,?,?,0,?)")){
+                    "INSERT INTO bus(bus_name,source,destination,departure_time,journey_hours,total_seats,booked_seats,price,bus_type,run_days) " +
+                    "VALUES(?,?,?,?,?,?,0,?,?,?)")){
 
                 ps.setString(1,name);
                 ps.setString(2,source);
@@ -131,6 +151,8 @@ public class AddBus {
                 ps.setInt(5,hours);
                 ps.setInt(6,seats);
                 ps.setDouble(7,price);
+                ps.setString(8,type != null ? type : "Ordinary");
+                ps.setString(9,runDays);
 
                 ps.executeUpdate();
 

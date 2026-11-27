@@ -10,6 +10,8 @@ public class Main {
             e.printStackTrace();
         }
 
+        util.Theme.install();
+
         SwingUtilities.invokeLater(() -> new Login());
     }
 }

@@ -43,8 +43,8 @@ public class ViewBuses {
         title.setBorder(BorderFactory.createEmptyBorder(20,0,20,0));
 
         String cols[]={
-                "Bus ID","Bus Name","Source","Destination","Departure",
-                "Arrival","Total Seats","Fare","Upcoming Bookings"
+                "Bus ID","Bus Name","Type","Source","Destination","Departure",
+                "Arrival","Runs On","Total Seats","Fare","Upcoming Bookings"
         };
 
         DefaultTableModel model = new DefaultTableModel(cols,0){
@@ -58,9 +58,11 @@ public class ViewBuses {
         table.setAutoCreateRowSorter(true);
 
         TableColumnModel cm = table.getColumnModel();
-        cm.getColumn(0).setPreferredWidth(60);
+        cm.getColumn(0).setPreferredWidth(55);
         cm.getColumn(1).setPreferredWidth(170);
-        cm.getColumn(8).setPreferredWidth(130);
+        cm.getColumn(2).setPreferredWidth(100);
+        cm.getColumn(7).setPreferredWidth(130);
+        cm.getColumn(10).setPreferredWidth(130);
 
         JTableHeader header = table.getTableHeader();
         header.setFont(headerFont);
@@ -100,10 +102,12 @@ public class ViewBuses {
                 model.addRow(new Object[]{
                         rs.getInt("bus_id"),
                         rs.getString("bus_name"),
+                        rs.getString("bus_type") != null ? rs.getString("bus_type") : "Ordinary",
                         rs.getString("source"),
                         rs.getString("destination"),
                         depStr,
                         arrStr,
+                        util.RunDays.label(rs.getString("run_days")),
                         rs.getInt("total_seats"),
                         rs.getDouble("price"),
                         rs.getInt("upcoming")

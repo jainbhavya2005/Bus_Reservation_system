@@ -6,6 +6,7 @@ import bus.MyBookings;
 import bus.SearchBusFinal;
 import java.awt.*;
 import javax.swing.*;
+import util.Theme;
 
 public class Dashboard {
 
@@ -60,6 +61,7 @@ public class Dashboard {
         logout.setBackground(new Color(178,34,34));
 
         panel.add(title);
+        Theme.addToggle(panel, 20, 380);
         bg.add(panel);
 
         // ✅ CONNECT BUTTONS PROPERLY

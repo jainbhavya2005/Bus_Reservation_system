@@ -103,7 +103,13 @@ CREATE TABLE IF NOT EXISTS booking (
 
 *(If upgrading an existing `booking` table, run: `ALTER TABLE booking ADD COLUMN booked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;`)*
 
-Update your database credentials in `src/db/DBConnection.java` if needed.
+Copy `db.properties.example` to `db.properties` (ignored by Git) and update your MySQL connection details, or set `DB_URL`, `DB_USER`, and `DB_PASSWORD` environment variables:
+
+```properties
+db.url=jdbc:mysql://localhost:3306/tickets
+db.user=root
+db.password=your_mysql_password
+```
 
 ### 2. Email Configuration (Optional)
 To enable live PDF e-ticket emails, create a `mail.properties` file in the project root (ignored by Git):

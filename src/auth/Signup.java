@@ -77,6 +77,18 @@ public class Signup {
         panel.add(u); panel.add(user);
         panel.add(p); panel.add(pass);
         panel.add(c); panel.add(confirm);
+
+        JCheckBox showPass = new JCheckBox("Show passwords");
+        showPass.setFont(new Font("Times New Roman", Font.PLAIN, 13));
+        showPass.setOpaque(false);
+        showPass.setBounds(160,212,200,20);
+        final char hiddenEcho = pass.getEchoChar();
+        showPass.addActionListener(e -> {
+            char ch = showPass.isSelected() ? (char) 0 : hiddenEcho;
+            pass.setEchoChar(ch);
+            confirm.setEchoChar(ch);
+        });
+        panel.add(showPass);
         panel.add(register); panel.add(back);
 
         bgPanel.add(panel);

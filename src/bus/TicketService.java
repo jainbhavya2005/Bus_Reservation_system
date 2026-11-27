@@ -11,11 +11,15 @@ import util.TicketPdf;
 
 public class TicketService {
 
+    /** Names pre-filled in the passenger forms (used by "Book Again" / "Return Trip"). */
+    public static List<String> presetNames = new ArrayList<>();
+
     public static List<Passenger> collectPassengers(List<Integer> selectedSeats, double baseFare) {
         List<Passenger> list = new ArrayList<>();
 
         for (int seat : selectedSeats) {
-            JTextField nameField = new JTextField(16);
+            String presetName = list.size() < presetNames.size() ? presetNames.get(list.size()) : "";
+            JTextField nameField = new JTextField(presetName, 16);
             JTextField ageField = new JTextField("20", 5);
             String[] genders = {"Male", "Female", "Other"};
             JComboBox<String> genderBox = new JComboBox<>(genders);

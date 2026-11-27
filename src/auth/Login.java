@@ -6,6 +6,7 @@ import db.DBConnection;
 import java.awt.*;
 import java.sql.*;
 import javax.swing.*;
+import util.Theme;
 
 public class Login {
 
@@ -87,6 +88,16 @@ public class Login {
         panel.add(title);
         panel.add(u); panel.add(user);
         panel.add(p); panel.add(pass);
+
+        JCheckBox showPass = new JCheckBox("Show password");
+        showPass.setFont(new Font("Times New Roman", Font.PLAIN, 13));
+        showPass.setOpaque(false);
+        showPass.setBounds(160,160,180,20);
+        final char hiddenEcho = pass.getEchoChar();
+        showPass.addActionListener(e -> pass.setEchoChar(showPass.isSelected() ? (char) 0 : hiddenEcho));
+        panel.add(showPass);
+
+        Theme.addToggle(panel, 40, 305);
         panel.add(r); panel.add(roleBox);
         panel.add(login); panel.add(signup);
 

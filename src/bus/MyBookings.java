@@ -24,6 +24,7 @@ public class MyBookings extends JFrame {
         final String paymentMethod;
         final List<Integer> seats = new ArrayList<>();
         final List<Integer> bookingIds = new ArrayList<>();
+        final java.util.LinkedHashSet<String> passengerNames = new java.util.LinkedHashSet<>();
 
         GroupedBooking(
                 String busName,
@@ -39,6 +40,8 @@ public class MyBookings extends JFrame {
             this.paymentMethod = paymentMethod;
         }
     }
+
+    private final List<GroupedBooking> rowGroups = new ArrayList<>();
 
     public MyBookings(String username) {
         setTitle("My Bookings - " + username);
@@ -108,6 +111,11 @@ public class MyBookings extends JFrame {
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 10));
         bottomPanel.setBackground(Color.WHITE);
 
+        JButton againBtn = new JButton("Book Again");
+        JButton returnBtn = new JButton("Return Trip");
+        againBtn.addActionListener(e -> repeatBooking(username, table, false));
+        returnBtn.addActionListener(e -> repeatBooking(username, table, true));
+
         JButton refreshBtn = new JButton("Refresh");
         refreshBtn.addActionListener(e -> {
             model.setRowCount(0);
@@ -117,6 +125,8 @@ public class MyBookings extends JFrame {
         JButton closeBtn = new JButton("Close");
         closeBtn.addActionListener(e -> dispose());
 
+        bottomPanel.add(againBtn);
+        bottomPanel.add(returnBtn);
         bottomPanel.add(refreshBtn);
         bottomPanel.add(closeBtn);
         add(bottomPanel, BorderLayout.SOUTH);
@@ -125,6 +135,7 @@ public class MyBookings extends JFrame {
     }
 
     private void loadGroupedBookings(String username, DefaultTableModel model) {
+        rowGroups.clear();
         boolean hasBookedAt = columnExists("booking", "booked_at");
         boolean hasPayment = columnExists("booking", "payment_method");
 
@@ -132,7 +143,7 @@ public class MyBookings extends JFrame {
         String paymentExpr = hasPayment ? "COALESCE(bk.payment_method, '-')" : "'-'";
 
         String sql =
-                "SELECT bk.booking_id, bk.bus_id, bk.seat_number, bk.journey_date, "
+                "SELECT bk.booking_id, bk.bus_id, bk.seat_number, bk.journey_date, bk.passenger_name, "
                         + bookedExpr + " AS booked_ts, " + paymentExpr + " AS pay_method, "
                         + "b.bus_name, b.source, b.destination "
                         + "FROM booking bk "
@@ -193,6 +204,8 @@ public class MyBookings extends JFrame {
                         );
                         gb.bookingIds.add(bookingId);
                         gb.seats.add(seatNumber);
+                        String pName = rs.getString("passenger_name");
+                        if (pName != null && !pName.isBlank()) gb.passengerNames.add(pName);
                     }
                 }
             }
@@ -207,6 +220,7 @@ public class MyBookings extends JFrame {
                         .reduce((a, b) -> a + ", " + b)
                         .orElse("-") + " (" + gb.seats.size() + ")";
 
+                rowGroups.add(gb);
                 model.addRow(new Object[]{
                         idsText,
                         gb.busName,
@@ -224,6 +238,24 @@ public class MyBookings extends JFrame {
         }
     }
 
+    /** Opens the search screen with the route (and passenger names) of the selected booking pre-filled. */
+    private void repeatBooking(String username, JTable table, boolean reverse) {
+        int row = table.getSelectedRow();
+        if (row < 0 || row >= rowGroups.size()) {
+            JOptionPane.showMessageDialog(this, "Select a booking first");
+            return;
+        }
+        GroupedBooking gb = rowGroups.get(row);
+        String[] parts = gb.route.split(" \u2192 ");
+        if (parts.length != 2) {
+            JOptionPane.showMessageDialog(this, "Route details are not available for this booking");
+            return;
+        }
+        String from = reverse ? parts[1].trim() : parts[0].trim();
+        String to = reverse ? parts[0].trim() : parts[1].trim();
+        new SearchBusFinal(username, from, to, new ArrayList<>(gb.passengerNames));
+    }
+
     private String formatTimestamp(Timestamp ts, boolean hasExactTime) {
         if (ts == null) {
             return "-";
@@ -236,20 +268,17 @@ public class MyBookings extends JFrame {
     }
 
     private boolean columnExists(String tableName, String columnName) {
-        String sql = "SELECT COUNT(*) FROM information_schema.COLUMNS "
-                + "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?";
-        try (Connection con = DBConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            if (con == null) {
-                return false;
-            }
-            ps.setString(1, tableName);
-            ps.setString(2, columnName);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() && rs.getInt(1) > 0;
-            }
-        } catch (SQLException ignored) {
-            return false;
+    String sql = "SELECT COUNT(*) FROM information_schema.COLUMNS "
+            + "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?";
+    try (Connection con = DBConnection.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+        ps.setString(1, tableName);
+        ps.setString(2, columnName);
+        try (ResultSet rs = ps.executeQuery()) {
+            return rs.next() && rs.getInt(1) > 0;
         }
+    } catch (Exception ignored) {   // was SQLException; also covers a null connection
+        return false;
     }
+}
 }

@@ -1,4 +1,7 @@
 mail.properties
+db.properties
 *.pdf
 *.class
 .DS_Store
+out/
+bin/
